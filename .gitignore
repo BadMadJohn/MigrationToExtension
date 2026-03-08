@@ -1,0 +1,36 @@
+# Session files
+session-notes.md
+
+# Environment
+.env
+*.log
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Temp
+*.tmp
+temp/
+
+# Working directory (generated)
+work/
+
+# Generated reports
+РеестрИзменений.txt
+РеестрПроцедур.txt
+ОтчётГенерации.txt
+ОтчётСборки.txt
+ОтчётВерификации.txt
+
+# Input data (too large for repo)
+ОтчетОСравнении.txt
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Claude auto-memory
+.claude/projects/
