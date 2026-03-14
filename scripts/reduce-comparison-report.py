@@ -40,15 +40,21 @@ RE_OBJECT_HEADER = re.compile(
     r'Перечисление|РегистрСведений|РегистрНакопления|РегистрБухгалтерии|'
     r'ПланВидовХарактеристик|ПланСчетов|ПланОбмена|Обработка|Отчет|'
     r'РегламентноеЗадание|ПодпискаНаСобытия|HTTPСервис|ВебСервис|'
-    r'БизнесПроцесс|Задача|ЖурналДокументов|Константа|ОпределяемыйТип)\.(.+)$'
+    r'БизнесПроцесс|Задача|ЖурналДокументов|Константа|ОпределяемыйТип|'
+    r'РегистрРасчета|ПланВидовРасчета|ОбщаяФорма|ОбщаяКоманда|'
+    r'СервисИнтеграции|ХранилищеНастроек)\.(.+)$'
 )
 
 RE_FORM_HEADER = re.compile(
     r'^(\t+)- [*]{3}.+\.Форма\.(.+)$'
 )
 
+RE_COMMAND_HEADER = re.compile(
+    r'^(\t+)- [*]{3}.+\.Команда\.(.+)$'
+)
+
 RE_MODULE_MARKER = re.compile(
-    r'^(\t+)- (Модуль(?:\s+объекта|\s+менеджера|\s+набора записей)?) - Различаются значения$'
+    r'^(\t+)- (Модуль(?:\s+объекта|\s+менеджера|\s+набора записей|\s+команды)?) - Различаются значения$'
 )
 
 RE_CHANGE_LINES = re.compile(
@@ -80,6 +86,7 @@ def parse_report(lines: list[str]) -> list[ModuleChanges]:
     current_object_type = None
     current_object_name = None
     current_form_name = None
+    current_command_name = None
     current_module: Optional[ModuleChanges] = None
     in_module_section = False
 
@@ -98,6 +105,13 @@ def parse_report(lines: list[str]) -> list[ModuleChanges]:
         m = RE_FORM_HEADER.match(line)
         if m:
             current_form_name = m.group(2)
+            in_module_section = False
+            continue
+
+        # Проверяем заголовок команды (аналогично формам)
+        m = RE_COMMAND_HEADER.match(line)
+        if m:
+            current_command_name = m.group(2)
             in_module_section = False
             continue
 
@@ -122,6 +136,7 @@ def parse_report(lines: list[str]) -> list[ModuleChanges]:
                     break
 
             current_form_name = None
+            current_command_name = None
             in_module_section = False
             continue
 
@@ -131,6 +146,8 @@ def parse_report(lines: list[str]) -> list[ModuleChanges]:
             module_type = m.group(2)
             if current_form_name:
                 module_type = f"Модуль формы {current_form_name}"
+            elif current_command_name:
+                module_type = f"Модуль команды {current_command_name}"
 
             if current_object_type and current_object_name:
                 obj_path = f"{current_object_type}.{current_object_name}"

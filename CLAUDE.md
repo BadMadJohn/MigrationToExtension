@@ -25,14 +25,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Пайплайн обработки
 
 ```
-ОтчётОСравнении.txt → [1] reduce → РеестрИзменений.txt → [2] extract → work/*_{typ,mod,new}.bsl → [3] generate → *_ext.bsl → [4] TODO: сборка модулей
+ОтчётОСравнении.txt → [1] reduce → РеестрИзменений.txt → [2] extract → work/*_{typ,mod,new}.bsl → [3] generate → *_ext.bsl → [4] assemble → _module.bsl → [5] verify → [6] deploy → [7] metadata → extension/
 ```
 
 1. **reduce-comparison-report.py** — парсит подробный отчёт 1С о сравнении → компактный реестр модулей с номерами строк
 2. **extract-modified-procedures.py** — по реестру извлекает процедуры из BSL-модулей в отдельные файлы (`_typ` + `_mod` для изменённых, `_new` для новых)
 3. **generate-extension-procedures.py** — сравнивает `_typ` vs `_mod` через difflib → генерирует `_ext.bsl` с маркерами `#Вставка/#Удаление`, проверяет инвариант
-4. **TODO: сборка модулей** — собирает `_ext` + `_new` в готовые модули расширения
-5. **TODO: ИИ-ревью** — второй проход для оптимизации крупных replace-блоков
+4. **assemble-extension-modules.py** — собирает `_ext` + `_new` в `_module.bsl`, переименование с префиксом
+5. **verify-extension-modules.py** — верификация: инвариант, префикс, орфанные ссылки, структура BSL
+6. **deploy-extension-modules.py** — копирует `_module.bsl` в структуру расширения
+7. **generate-extension-metadata.py** — генерирует XML-метаданные расширения (Configuration.xml, объекты, формы)
 
 > Подробное описание каждого скрипта: см. auto-memory `pipeline.md`
 
@@ -76,8 +78,13 @@ scripts/
   reduce-comparison-report.py      — [1] парсинг отчёта сравнения 1С
   extract-modified-procedures.py   — [2] извлечение процедур в файлы
   generate-extension-procedures.py — [3] генерация _ext.bsl с маркерами
+  assemble-extension-modules.py    — [4] сборка модулей с переименованием
+  verify-extension-modules.py      — [5] верификация собранных модулей
+  deploy-extension-modules.py      — [6] копирование .bsl в расширение
+  generate-extension-metadata.py   — [7] генерация XML-метаданных расширения
 config.json         — пути к конфигурациям, параметры расширения
 work/               — рабочий каталог с извлечёнными процедурами (генерируется)
+extension/          — каталог расширения (результат пайплайна)
 ```
 
 ## MANDATORY: Skills-First Rule

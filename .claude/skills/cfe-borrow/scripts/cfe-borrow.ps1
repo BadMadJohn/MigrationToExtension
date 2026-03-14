@@ -250,9 +250,11 @@ $script:generatedTypes = @{
 	)
 	"Report" = @(
 		@{ prefix = "ReportObject"; category = "Object" }
+		@{ prefix = "ReportManager"; category = "Manager" }
 	)
 	"DataProcessor" = @(
 		@{ prefix = "DataProcessorObject"; category = "Object" }
+		@{ prefix = "DataProcessorManager"; category = "Manager" }
 	)
 }
 

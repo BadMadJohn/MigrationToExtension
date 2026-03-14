@@ -50,6 +50,7 @@ class ModuleEntry:
     object_name: str
     module_type: str        # Модуль, Модуль объекта, Модуль менеджера, Модуль формы X
     form_name: Optional[str]
+    command_name: Optional[str]
     line_ranges: list       # list[LineRange]
     report_signatures: list  # сигнатуры из отчёта
 
@@ -73,6 +74,12 @@ OBJECT_TYPE_TO_DIR = {
     "Задача": "Tasks",
     "Константа": "Constants",
     "ЖурналДокументов": "DocumentJournals",
+    "РегистрРасчета": "CalculationRegisters",
+    "ПланВидовРасчета": "ChartsOfCalculationTypes",
+    "ОбщаяФорма": "CommonForms",
+    "ОбщаяКоманда": "CommonCommands",
+    "СервисИнтеграции": "IntegrationServices",
+    "ХранилищеНастроек": "SettingsStorages",
 }
 
 MODULE_TYPE_TO_FILE = {
@@ -80,6 +87,7 @@ MODULE_TYPE_TO_FILE = {
     "Модуль объекта": "Ext/ObjectModule.bsl",
     "Модуль менеджера": "Ext/ManagerModule.bsl",
     "Модуль набора записей": "Ext/RecordSetModule.bsl",
+    "Модуль команды": "Ext/CommandModule.bsl",
 }
 
 
@@ -107,15 +115,19 @@ def parse_reduced_report(report_path: str) -> list[ModuleEntry]:
             continue
 
         # Тип модуля: "  Модуль объекта" / "  Модуль менеджера" / "  Модуль формы ИмяФормы"
-        m = re.match(r'^  (Модуль(?:\s+объекта|\s+менеджера|\s+набора записей|\s+формы\s+\S+)?)$', line)
+        m = re.match(r'^  (Модуль(?:\s+объекта|\s+менеджера|\s+набора записей|\s+формы\s+\S+|\s+команды\s+\S+|\s+команды)?)$', line)
         if not m:
             m = re.match(r'^  (Модуль)$', line)
         if m and current_obj_type:
             module_type = m.group(1)
             form_name = None
+            command_name = None
             fm = re.match(r'Модуль формы (.+)', module_type)
             if fm:
                 form_name = fm.group(1)
+            cm = re.match(r'Модуль команды (.+)', module_type)
+            if cm:
+                command_name = cm.group(1)
 
             # Следующая строка — "    Строки: ..."
             line_ranges = []
@@ -141,6 +153,7 @@ def parse_reduced_report(report_path: str) -> list[ModuleEntry]:
                 object_name=current_obj_name,
                 module_type=module_type,
                 form_name=form_name,
+                command_name=command_name,
                 line_ranges=line_ranges,
                 report_signatures=report_sigs,
             ))
@@ -319,14 +332,22 @@ def resolve_bsl_path(config_path: str, entry: ModuleEntry) -> Optional[str]:
     if entry.form_name:
         # Модуль формы
         bsl = base / "Forms" / entry.form_name / "Ext" / "Form" / "Module.bsl"
+    elif entry.command_name:
+        # Модуль команды объекта
+        bsl = base / "Commands" / entry.command_name / "Ext" / "CommandModule.bsl"
     elif entry.object_type == "ОбщийМодуль":
         bsl = base / "Ext" / "Module.bsl"
+    elif entry.object_type == "ОбщаяФорма":
+        # Общая форма — модуль внутри Ext/Form/
+        bsl = base / "Ext" / "Form" / "Module.bsl"
+    elif entry.object_type == "ОбщаяКоманда":
+        bsl = base / "Ext" / "CommandModule.bsl"
     else:
         module_file = MODULE_TYPE_TO_FILE.get(entry.module_type)
         if module_file:
             bsl = base / module_file
         else:
-            # Fallback для формы из "Модуль" (форма на уровне объекта)
+            # Fallback
             bsl = base / "Ext" / "Module.bsl"
 
     return str(bsl) if bsl.exists() else None
@@ -458,6 +479,8 @@ def main():
         module_label = f"{entry.object_type}.{entry.object_name}"
         if entry.form_name:
             module_label += f".Форма.{entry.form_name}"
+        elif entry.command_name:
+            module_label += f".Команда.{entry.command_name}"
 
         if bsl_path is None:
             report_lines.append(f"## {module_label} — {entry.module_type}")
@@ -502,6 +525,11 @@ def main():
             out_subdir = os.path.join(
                 work_dir, entry.object_type, entry.object_name,
                 "Forms", entry.form_name
+            )
+        elif entry.command_name:
+            out_subdir = os.path.join(
+                work_dir, entry.object_type, entry.object_name,
+                "Commands", entry.command_name
             )
         else:
             out_subdir = os.path.join(
